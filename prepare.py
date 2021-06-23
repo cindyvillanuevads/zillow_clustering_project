@@ -27,10 +27,7 @@ def nulls_by_row(df):
 
 def miss_dup_values(df):
     '''
-    takes in a dataframe of observations and attributes and returns a dataframe where each row is an atttribute name, 
-    the first column is the number of rows with missing values for that attribute, 
-    and the second column is percent of total rows that have missing values for that attribute and 
-    duplicated rows.
+    this function takes a dataframe as input and returns metrics for missing values and duplicated rows.
     '''
         # Total missing values
     mis_val = df.isnull().sum()
@@ -55,6 +52,8 @@ def miss_dup_values(df):
     print (f"** There are {dup} duplicate rows that represents {round(dup_percent, 2)}% of total Values**")
         # Return the dataframe with missing information
     return mis_val_table_ren_columns
+    
+
 
 
 def handle_missing_values(df, prop_required_columns=0.5, prop_required_row=0.75):
@@ -83,3 +82,119 @@ def drop_low_missing_values(df, per = 1 ):
     df = df.dropna(axis=0, subset = col_drop)
     
     return df
+
+
+
+# plot distributions
+def distribution (df):
+    '''
+    takes in a df and plot individual variable distributions excluding object type
+    '''
+    cols =df.columns.to_list()
+    for col in cols:
+        if df[col].dtype != 'object':
+            plt.hist(df[col])
+            plt.title(f'Distribution of {col}')
+            plt.xlabel('values')
+            plt.ylabel('Counts of customers')
+            plt.show()
+
+
+
+
+def distribution_boxplot (df):
+    '''
+    takes in a df and boxplot variable distributions excluding object type
+    '''
+    cols =df.columns.to_list()
+    for col in cols:
+        if df[col].dtype != 'object':
+            plt.figure(figsize=(8, 6))
+            sns.boxplot(x= col, data=df)
+            plt.title(f'Distribution of {col}')
+            plt.xlabel('values')
+            plt.show()
+    return
+
+
+
+def get_counties(df):
+    '''
+    This function will create dummy variables out of the original fips column. 
+    And return a dataframe with all of the original columns except regionidcounty.
+    We will keep fips column for data validation after making changes. 
+    New columns added will be 'LA', 'Orange', and 'Ventura' which are boolean 
+    The fips ids are renamed to be the name of the county each represents. 
+    '''
+    # create dummy vars of fips id
+    county_df = pd.get_dummies(df.fips)
+    # rename columns by actual county name
+    county_df.columns = ['los_angeles', 'orange', 'ventura']
+    # concatenate the dataframe with the 3 county columns to the original dataframe
+    df_dummies = pd.concat([df, county_df], axis = 1)
+    # drop regionidcounty and fips columns
+    df_dummies = df_dummies.drop(columns = ['regionidcounty', 'fips'])
+    return df_dummies
+
+
+
+def create_features (df) :
+    '''
+    takes in a df and create age , taxrate, lotsize_acres columns and convert transactiondate to int
+    drops 'yearbuilt', 'taxamount', 'taxvaluedollarcnt', lotsizesquarefeet columns
+    '''
+    #create a new colum with age
+    df['age'] = 2017 - df.yearbuilt
+    
+    #taxrate
+    df['taxrate'] = df.taxamount/df.taxvaluedollarcnt*100
+    
+    #transactiondate
+    df['transactiondate']=(df['transactiondate'].str.replace(' ','').str.replace('-',''))
+    df['transactiondate'] = df['transactiondate'].astype('int')
+    #try to bin transaction date
+    df['quadrimester'] = pd.cut(df.transactiondate, bins = [ 20170100, 20170500, 20170900, 20171230],
+                                 labels = [1,2,3])
+    
+     # create acres variable
+    df['lotsize_acres'] = df.lotsizesquarefeet/43560
+    
+    #drop columns
+    df = df.drop(columns = ['yearbuilt', 'taxamount', 'taxvaluedollarcnt', 'lotsizesquarefeet'  ])
+    
+    return df
+
+
+def remove_outliers(df, col_list, k=1.5):
+    ''' remove outliers from the numeric columns in a dataframe 
+        and return that dataframe
+    '''
+    
+    for col in col_list:
+
+        q1, q3 = df[f'{col}'].quantile([.25, .75])  # get quartiles
+        
+        iqr = q3 - q1   # calculate interquartile range
+        
+        upper_bound = q3 + k * iqr   # get upper bound
+        lower_bound = q1 - k * iqr   # get lower bound
+
+        # return dataframe without outliers
+        
+        df = df[(df[f'{col}'] > lower_bound) & (df[f'{col}'] < upper_bound)]
+        
+    return df
+
+def split_data(df):
+    '''
+    take in a DataFrame and return train, validate, and test DataFrames.
+    random_state=123
+    '''
+    train_validate, test = train_test_split(df, test_size=.2, random_state=123)
+    train, validate = train_test_split(train_validate, 
+                                       test_size=.3, 
+                                       random_state=123)
+    print(f'train -> {train.shape}')
+    print(f'validate -> {validate.shape}')
+    print(f'test -> {test.shape}')                                  
+    return train, validate, test
