@@ -126,15 +126,14 @@ def get_counties(df):
     New columns added will be 'LA', 'Orange', and 'Ventura' which are boolean 
     The fips ids are renamed to be the name of the county each represents. 
     '''
-    # create dummy vars of fips id
-    county_df = pd.get_dummies(df.fips)
-    # rename columns by actual county name
-    county_df.columns = ['los_angeles', 'orange', 'ventura']
-    # concatenate the dataframe with the 3 county columns to the original dataframe
-    df_dummies = pd.concat([df, county_df], axis = 1)
-    # drop regionidcounty and fips columns
-    df_dummies = df_dummies.drop(columns = ['regionidcounty', 'fips'])
-    return df_dummies
+    counties= {
+    6037: "Los Angeles",
+    6059: "Orange",
+    6111: "Ventura"
+    }
+    df['county_name'] = df.fips.map(counties)
+    #df= df.drop(columns = 'fips')
+    return df
 
 
 
@@ -162,6 +161,8 @@ def create_features (df) :
     #drop columns
     df = df.drop(columns = ['yearbuilt', 'taxamount', 'taxvaluedollarcnt', 'lotsizesquarefeet'  ])
     
+    #change type
+    df[['parcelid', 'transactiondate']] = df[['parcelid', 'transactiondate']].astype('str')
     return df
 
 
@@ -198,3 +199,74 @@ def split_data(df):
     print(f'validate -> {validate.shape}')
     print(f'test -> {test.shape}')                                  
     return train, validate, test
+
+def split_Xy (train, validate, test, target):
+    '''
+    This function takes in three dataframe (train, validate, test) and a target  and splits each of the 3 samples
+    into a dataframe with independent variables and a series with the dependent, or target variable.
+    The function returns 3 dataframes and 3 series:
+    X_train (df) & y_train (series), X_validate & y_validate, X_test & y_test.
+    Example:
+    X_train, y_train, X_validate, y_validate, X_test, y_test = split_Xy (train, validate, test, 'Fertility' )
+    '''
+    
+    #split train
+    X_train = train.drop(columns= [target])
+    y_train= train[target]
+    #split validate
+    X_validate = validate.drop(columns= [target])
+    y_validate= validate[target]
+    #split validate
+    X_test = test.drop(columns= [target])
+    y_test= test[target]
+
+    print(f'X_train -> {X_train.shape}               y_train->{y_train.shape}')
+    print(f'X_validate -> {X_validate.shape}         y_validate->{y_validate.shape} ')        
+    print(f'X_test -> {X_test.shape}                  y_test>{y_test.shape}') 
+    return  X_train, y_train, X_validate, y_validate, X_test, y_test
+
+
+def scaled_df ( train_df , validate_df, test_df,columns,  scaler):
+    '''
+    Take in a 3 df and a type of scaler that you  want to  use. it will scale all columns
+    except object type. Fit a scaler only in train and tramnsform in train, validate and test.
+    returns  new dfs with the scaled columns.
+    scaler : MinMaxScaler() or RobustScaler(), StandardScaler() 
+    Example:
+    scaled_df( X_train , X_validate , X_test, RobustScaler())
+    
+    '''
+    
+    # fit our scaler
+    scaler.fit(train_df[columns])
+    # get our scaled arrays
+    train_scaled = scaler.transform(train_df[columns])
+    validate_scaled= scaler.transform(validate_df[columns])
+    test_scaled= scaler.transform(test_df[columns])
+
+    # convert arrays to dataframes
+    train_scaled_df = pd.DataFrame(train_scaled, columns=columns).set_index([train_df.index.values])
+    validate_scaled_df = pd.DataFrame(validate_scaled, columns=columns).set_index([validate_df.index.values])
+    test_scaled_df = pd.DataFrame(test_scaled, columns=columns).set_index([test_df.index.values])
+
+    #add the columns that are not scaled
+    train_scaled_df = pd.concat([train_scaled_df, train_df.drop(columns = columns) ], axis= 1 )
+    validate_scaled_df = pd.concat([validate_scaled_df, validate_df.drop(columns = columns) ], axis= 1 )
+    test_scaled_df = pd.concat([test_scaled_df, test_df.drop(columns = columns) ], axis= 1 )
+    #plot
+    for col in columns: 
+        plt.figure(figsize=(13, 6))
+        plt.subplot(121)
+        plt.hist(train_df[col], ec='black')
+        plt.title('Original')
+        plt.xlabel(col)
+        plt.ylabel("counts")
+        plt.subplot(122)
+        plt.hist(train_scaled_df[col],  ec='black')
+        plt.title('Scaled')
+        plt.xlabel(col)
+        plt.ylabel("counts")
+
+
+
+    return train_scaled_df, validate_scaled_df, test_scaled_df
