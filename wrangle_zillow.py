@@ -41,7 +41,7 @@ def wrangle_zillow (  prop_required_columns=0.75, prop_required_row=0.75):
     df_single = p.drop_low_missing_values(df_single, per= 3)
 
 
-    #get dummies
+    #get counties
     df_single = p.get_counties(df_single)
 
     #create features
