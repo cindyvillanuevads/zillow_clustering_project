@@ -132,7 +132,11 @@ def get_counties(df):
     6111: "Ventura"
     }
     df['county_name'] = df.fips.map(counties)
-    #df= df.drop(columns = 'fips')
+    # Dummy FiPs
+    dummy_df =  pd.get_dummies(df['county_name'])
+    dummy_df.columns = ['la_cnty', 'orange_cnty', 'ventura_cnty']
+    df = pd.concat([df, dummy_df], axis=1)
+    df= df.drop(columns = 'fips')
     return df
 
 
