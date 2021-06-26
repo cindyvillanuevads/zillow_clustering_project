@@ -162,6 +162,9 @@ def create_features (df) :
      # create acres variable
     df['lotsize_acres'] = df.lotsizesquarefeet/43560
     
+    #create logerror_bins
+    df['logerror_bins']= pd.cut(df.logerror, [-5, -.2, -.05, .05, .2, 4])
+
     #drop columns
     df = df.drop(columns = ['yearbuilt', 'taxamount', 'taxvaluedollarcnt', 'lotsizesquarefeet'  ])
     
