@@ -90,7 +90,8 @@ def distribution (df):
     '''
     takes in a df and plot individual variable distributions excluding object type
     '''
-    cols =df.columns.to_list()
+
+    cols =df.drop(columns = 'logerror_bins').columns.to_list()
     for col in cols:
         if df[col].dtype != 'object':
             plt.hist(df[col])

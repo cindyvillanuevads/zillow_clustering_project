@@ -61,4 +61,4 @@ def wrangle_zillow (  prop_required_columns=0.75, prop_required_row=0.75):
     train, validate, test = p.split_data(df_single)
 
 
-    return train, validate, test
+    return df_single , train, validate, test
